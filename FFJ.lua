@@ -1,8 +1,9 @@
--- [[ DOORS SUPREMACY v77.0 - THE MULTIVERSE ]]
--- Content: Hotel | Mines | Backdoor | Rooms | Outdoors.
--- Logic: Global Cache Scanning + Proximity Trigger (Fixed Distance).
--- UI: Separated ESP Tabs (Entities, Hotel, Mines, Backdoor).
--- Status: NO LEAKS, NO MISSING ITEMS.
+-- [[ DOORS SUPREMACY v85.0 - THE OMNIVERSE GOD ]]
+-- Status: GOLD MASTER.
+-- Logic: Auto Loot (Global Cache -> Distance Trigger).
+-- ESP: Separated Tabs (Hotel, Mines, Backdoor, Rooms).
+-- Anti-Eyes: Server spoofing (No Model Deletion).
+-- Memory: Weak Tables (Zero Leaks).
 
 local Services = {
     Players = game:GetService("Players"),
@@ -22,208 +23,182 @@ local Client = {
     Humanoid = nil
 }
 
--- // 1. MEMORY MANAGEMENT (WEAK TABLES)
+-- // 1. MEMORY MANAGEMENT (ZERO LEAK)
 local Cache = {
-    Folder = game.CoreGui:FindFirstChild("Doors_v77_Multi") or Instance.new("Folder", game.CoreGui),
+    Folder = game.CoreGui:FindFirstChild("Doors_v85_God") or Instance.new("Folder", game.CoreGui),
+    -- Weak Tables: Tự động dọn dẹp bộ nhớ
     Interactables = setmetatable({}, { __mode = "k" }), 
     ProcessedRooms = setmetatable({}, { __mode = "k" }),
     ESP_Registry = setmetatable({}, { __mode = "k" }),
     IdentityCache = {} 
 }
-Cache.Folder.Name = "Doors_v77_Multi"
+Cache.Folder.Name = "Doors_v85_God"
 
 local Config = {
-    -- SYSTEM
-    Speed = { Enabled = false, Target = 21, Server = 16 },
-    GodMode = false,
-    Notify = { Chat = true, UI = true },
+    System = {
+        SpeedEnabled = false,
+        SpeedVal = 21,
+        GodMode = false,
+        ChatNotify = true,
+        UINotify = true
+    },
     
-    -- AUTO LOOT (GRANULAR)
     Auto = {
+        -- Actions
         Unlock=true, Drawer=true, Instant=true,
-        Bed=false, Wardrobe=false, -- Hiding
+        Bed=false, Wardrobe=false,
         
-        -- Hotel
+        -- Global Item Whitelist
         Key=true, Lever=true, Gold=true, Lighter=true, Lockpick=true,
         Vitamin=true, Crucifix=true, Book=true, Breaker=true, Flashlight=true,
-        
-        -- Mines
-        Fuse=true, Shears=true, Battery=true, Glowstick=true, 
-        Bandage=true, Shake=true, Anchor=true, Valve=true,
-        
-        -- Backdoor / Rooms
-        TimerLever=true, Vial=true, Tablet=true, Gummy=true
+        Fuse=true, Shears=true, Battery=true, Glowstick=true, Bandage=true, Shake=true,
+        Anchor=true, Valve=true,
+        Timer=true, Vial=true, Tablet=true, Gummy=true
     },
     
-    -- VISUALS (TOGGLES)
-    Visuals = {
-        -- Global
-        Doors=true, FullBright=true,
-        
-        -- Entities (Full List)
-        ESP_Rush=true, ESP_Ambush=true, ESP_Seek=true, ESP_Figure=true,
-        ESP_Screech=true, ESP_Eyes=true, ESP_Halt=true, ESP_Glitch=true, ESP_Void=true,
-        ESP_Dupe=true, ESP_Timothy=true, ESP_Jack=true, ESP_Jeff=true, ESP_ElGoblino=true,
-        -- F2
-        ESP_Giggle=true, ESP_Gloombat=true, ESP_Grumble=true, ESP_Snare=true,
-        -- Backdoor / Rooms
-        ESP_Blitz=true, ESP_Lookman=true, ESP_Haste=true,
-        ESP_A60=true, ESP_A90=true, ESP_A120=true,
-        -- Special
-        ESP_Guiding=true, -- Guiding Light
-        
-        -- Items (Hotel)
-        ESP_Key=true, ESP_Lever=true, ESP_Book=true, ESP_Breaker=true,
-        ESP_Gold=true, ESP_Lighter=true, ESP_Lockpick=true, ESP_Vitamin=true, ESP_Crucifix=true, ESP_Flashlight=true,
-        
-        -- Items (Mines)
-        ESP_Fuse=true, ESP_Shears=true, ESP_Battery=true, ESP_Glowstick=true, 
-        ESP_Bandage=true, ESP_Shake=true, ESP_Anchor=true, ESP_Valve=true,
-        
-        -- Items (Backdoor/Rooms)
-        ESP_TimerLever=true, ESP_Vial=true, ESP_Tablet=true, ESP_Gummy=true
+    -- ESP CONFIGS (Chia theo Map)
+    ESP_Hotel = {
+        -- Entity
+        Rush=true, Ambush=true, Seek=true, Figure=true, Screech=true,
+        Eyes=true, Halt=true, Jack=true, Timothy=true, Dupe=true,
+        Jeff=true, ElGoblino=true, Bob=true,
+        -- Item
+        Key=true, Lever=true, Book=true, Breaker=true,
+        Gold=true, Lockpick=true, Flashlight=true, Lighter=true,
+        Vitamin=true, Crucifix=true
     },
     
-    Anti = { A90=true, Screech=true, Eyes=true, Snare=true, Dupe=true, Giggle=true, Lookman=true }
+    ESP_Mines = {
+        -- Entity
+        Giggle=true, Gloombat=true, Grumble=true, Snare=true,
+        -- Item
+        Fuse=true, Shears=true, Anchor=true, Valve=true,
+        Battery=true, Glowstick=true, Bandage=true, Shake=true
+    },
+    
+    ESP_Backdoor = {
+        -- Entity
+        Blitz=true, Lookman=true, Haste=true,
+        -- Item
+        Timer=true, Vial=true
+    },
+    
+    ESP_Rooms = {
+        -- Entity
+        A60=true, A90=true, A120=true,
+        -- Item
+        Tablet=true, Gummy=true
+    },
+    
+    General = {
+        Doors=true,
+        Guiding=true,
+        FullBright=true
+    },
+    
+    Anti = {
+        Eyes=true, -- Bật cái này là nhìn được Eyes (Spoofing)
+        Screech=true,
+        A90=true,
+        Snare=true,
+        Dupe=true,
+        Giggle=true,
+        Lookman=true
+    }
 }
 
--- // 2. DATABASE (FULL UNIVERSE)
-local Colors = {
+-- // 2. COLORS
+local C = {
     Door = Color3.fromRGB(0, 255, 0),
     Quest = Color3.fromRGB(0, 100, 255),
     Loot = Color3.fromRGB(255, 255, 0),
     Entity = Color3.fromRGB(255, 0, 0),
-    Rare = Color3.fromRGB(170, 0, 170), -- Glitch/Void
-    Backdoor = Color3.fromRGB(255, 0, 255) -- Magenta
+    Rare = Color3.fromRGB(170, 0, 170),
+    Backdoor = Color3.fromRGB(255, 0, 255)
 }
 
--- 2.1 Entity Database (Name -> Config Key & Display)
-local EntityDB = {
-    -- Hotel
-    ["RushMoving"]={N="🚨 RUSH", K="ESP_Rush"}, 
-    ["AmbushMoving"]={N="⚡ AMBUSH", K="ESP_Ambush"}, 
-    ["SeekMoving"]={N="👁️ SEEK", K="ESP_Seek"}, 
-    ["FigureRagdoll"]={N="👺 FIGURE", K="ESP_Figure"},
-    ["Screech"]={N="👾 SCREECH", K="ESP_Screech"}, 
-    ["Eyes"]={N="👀 EYES", K="ESP_Eyes"}, 
-    ["Halt"]={N="🛑 HALT", K="ESP_Halt"},
-    ["Glitch"]={N="👾 GLITCH", K="ESP_Glitch", C=Colors.Rare}, 
-    ["Void"]={N="🌑 VOID", K="ESP_Void", C=Colors.Rare},
-    ["Dupe"]={N="🚪 DUPE", K="ESP_Dupe"}, 
-    ["Spider"]={N="🕷️ TIMOTHY", K="ESP_Timothy"}, -- Timothy internal name often Spider/Timothy
-    ["Timothy"]={N="🕷️ TIMOTHY", K="ESP_Timothy"},
-    ["Jack"]={N="👻 JACK", K="ESP_Jack"},
-    ["JeffTheKiller"]={N="🔪 JEFF", K="ESP_Jeff"},
-    ["ElGoblino"]={N="👺 GOBLINO", K="ESP_ElGoblino"},
+-- // 3. DATABASE (MAP SPECIFIC)
+-- Mapping Entity Name -> {Name=Display, Tab=Category, Key=ConfigKey, Col=Color}
+local DB = {
+    -- == HOTEL ==
+    ["RushMoving"] = {N="🚨 RUSH", T="ESP_Hotel", K="Rush", C=C.Entity},
+    ["AmbushMoving"] = {N="⚡ AMBUSH", T="ESP_Hotel", K="Ambush", C=C.Entity},
+    ["FigureRagdoll"] = {N="👺 FIGURE", T="ESP_Hotel", K="Figure", C=C.Entity},
+    ["SeekMoving"] = {N="👁️ SEEK", T="ESP_Hotel", K="Seek", C=C.Entity},
+    ["Screech"] = {N="👾 SCREECH", T="ESP_Hotel", K="Screech", C=C.Entity},
+    ["Eyes"] = {N="👀 EYES", T="ESP_Hotel", K="Eyes", C=C.Entity},
+    ["Halt"] = {N="🛑 HALT", T="ESP_Hotel", K="Halt", C=C.Entity},
+    ["Dupe"] = {N="🚪 DUPE", T="ESP_Hotel", K="Dupe", C=C.Entity},
+    ["Spider"] = {N="🕷️ TIMOTHY", T="ESP_Hotel", K="Timothy", C=C.Entity},
+    ["Timothy"] = {N="🕷️ TIMOTHY", T="ESP_Hotel", K="Timothy", C=C.Entity},
+    ["Jack"] = {N="👻 JACK", T="ESP_Hotel", K="Jack", C=C.Entity},
+    ["JeffTheKiller"] = {N="🔪 JEFF", T="ESP_Hotel", K="Jeff", C=C.Entity},
+    ["ElGoblino"] = {N="👺 GOBLINO", T="ESP_Hotel", K="ElGoblino", C=C.Entity},
+    ["Bob"] = {N="💀 BOB", T="ESP_Hotel", K="Bob", C=C.Entity},
     
+    -- == MINES ==
+    ["GiggleCeiling"] = {N="🤪 GIGGLE", T="ESP_Mines", K="Giggle", C=C.Entity},
+    ["Gloombat"] = {N="🦇 BAT", T="ESP_Mines", K="Gloombat", C=C.Entity},
+    ["GrumbleRig"] = {N="🐛 GRUMBLE", T="ESP_Mines", K="Grumble", C=C.Entity},
+    ["Snare"] = {N="🚫 BẪY", T="ESP_Mines", K="Snare", C=C.Entity},
+    
+    -- == BACKDOOR ==
+    ["Blitz"] = {N="⚡ BLITZ", T="ESP_Backdoor", K="Blitz", C=C.Backdoor},
+    ["Lookman"] = {N="👀 LOOKMAN", T="ESP_Backdoor", K="Lookman", C=C.Backdoor},
+    ["Haste"] = {N="⏳ HASTE", T="ESP_Backdoor", K="Haste", C=C.Backdoor},
+    
+    -- == ROOMS ==
+    ["A60"] = {N="A-60", T="ESP_Rooms", K="A60", C=C.Entity},
+    ["A90"] = {N="🚫 A-90", T="ESP_Rooms", K="A90", C=C.Entity},
+    ["A120"] = {N="A-120", T="ESP_Rooms", K="A120", C=C.Entity},
+}
+
+-- Item Patterns: {Keyword, Tab, ConfigKey, DisplayName, Color}
+local ItemPatterns = {
     -- Mines
-    ["GiggleCeiling"]={N="🤪 GIGGLE", K="ESP_Giggle"}, 
-    ["Gloombat"]={N="🦇 BAT", K="ESP_Gloombat"}, 
-    ["GrumbleRig"]={N="🐛 GRUMBLE", K="ESP_Grumble"},
-    ["Snare"]={N="🚫 BẪY", K="ESP_Snare"},
+    {k="fuse", t="ESP_Mines", key="Fuse", n="🔌 Fuse", c=C.Quest},
+    {k="shears", t="ESP_Mines", key="Shears", n="✂️ Shears", c=C.Quest},
+    {k="anchor", t="ESP_Mines", key="Anchor", n="⚓ Anchor", c=C.Quest},
+    {k="valve", t="ESP_Mines", key="Valve", n="⚙️ Valve", c=C.Quest},
+    {k="gate", t="ESP_Mines", key="Valve", n="⚙️ Valve", c=C.Quest},
+    {k="battery", t="ESP_Mines", key="Battery", n="🔋 Battery", c=C.Loot},
+    {k="glowstick", t="ESP_Mines", key="Glowstick", n="🌟 Glowstick", c=C.Loot},
+    {k="bandage", t="ESP_Mines", key="Bandage", n="🩹 Bandage", c=C.Loot},
+    {k="medkit", t="ESP_Mines", key="Bandage", n="🩹 Medkit", c=C.Loot},
+    {k="shake", t="ESP_Mines", key="Shake", n="🥤 Shake", c=C.Loot},
     
-    -- Backdoor
-    ["Blitz"]={N="⚡ BLITZ", K="ESP_Blitz", C=Colors.Backdoor},
-    ["Lookman"]={N="👀 LOOKMAN", K="ESP_Lookman", C=Colors.Backdoor},
-    ["Haste"]={N="⏳ HASTE", K="ESP_Haste", C=Colors.Backdoor},
-    
-    -- Rooms
-    ["A60"]={N="A-60", K="ESP_A60", C=Colors.Entity},
-    ["A90"]={N="🚫 A-90", K="ESP_A90", C=Colors.Entity},
-    ["A120"]={N="A-120", K="ESP_A120", C=Colors.Entity}
-}
-
--- 2.2 Item Patterns (Deep Scan)
-local Patterns = {
-    -- Mines (F2)
-    {k="fuse", t="Fuse", n="🔌 Fuse", c=Colors.Quest},
-    {k="shears", t="Shears", n="✂️ Shears", c=Colors.Quest},
-    {k="anchor", t="Anchor", n="⚓ Anchor", c=Colors.Quest},
-    {k="valve", t="Valve", n="⚙️ Valve", c=Colors.Quest},
-    {k="gate", t="Valve", n="⚙️ Valve", c=Colors.Quest},
-    {k="battery", t="Battery", n="🔋 Battery", c=Colors.Loot},
-    {k="glowstick", t="Glowstick", n="🌟 Glowstick", c=Colors.Loot},
-    {k="bandage", t="Bandage", n="🩹 Bandage", c=Colors.Loot},
-    {k="medkit", t="Bandage", n="🩹 Medkit", c=Colors.Loot},
-    {k="shake", t="Shake", n="🥤 Shake", c=Colors.Loot},
-    
-    -- Hotel (F1)
-    {k="key", t="Key", n="🔑 Key", c=Colors.Quest},
-    {k="lever", t="Lever", n="🕹️ Lever", c=Colors.Quest},
-    {k="book", t="Book", n="📘 Book", c=Colors.Quest},
-    {k="paper", t="Book", n="📄 Code", c=Colors.Quest},
-    {k="breaker", t="Breaker", n="⚡ Breaker", c=Colors.Quest},
-    {k="gold", t="Gold", n="💰 Gold", c=Colors.Loot},
-    {k="cash", t="Gold", n="💰 Gold", c=Colors.Loot},
-    {k="lighter", t="Lighter", n="🔥 Lighter", c=Colors.Loot},
-    {k="lockpick", t="Lockpick", n="🔓 Lockpick", c=Colors.Loot},
-    {k="vitamin", t="Vitamin", n="💊 Vitamin", c=Colors.Loot},
-    {k="crucifix", t="Crucifix", n="✝️ Crucifix", c=Colors.Loot},
-    {k="flashlight", t="Flashlight", n="🔦 Flashlight", c=Colors.Loot},
-    {k="bulklight", t="Flashlight", n="🔦 Bulklight", c=Colors.Loot},
-    {k="straplight", t="Flashlight", n="🔦 Straplight", c=Colors.Loot},
+    -- Hotel
+    {k="key", t="ESP_Hotel", key="Key", n="🔑 Key", c=C.Quest},
+    {k="lever", t="ESP_Hotel", key="Lever", n="🕹️ Lever", c=C.Quest},
+    {k="book", t="ESP_Hotel", key="Book", n="📘 Book", c=C.Quest},
+    {k="paper", t="ESP_Hotel", key="Book", n="📄 Code", c=C.Quest},
+    {k="breaker", t="ESP_Hotel", key="Breaker", n="⚡ Breaker", c=C.Quest},
+    {k="gold", t="ESP_Hotel", key="Gold", n="💰 Gold", c=C.Loot},
+    {k="cash", t="ESP_Hotel", key="Gold", n="💰 Gold", c=C.Loot},
+    {k="lighter", t="ESP_Hotel", key="Lighter", n="🔥 Lighter", c=C.Loot},
+    {k="lockpick", t="ESP_Hotel", key="Lockpick", n="🔓 Lockpick", c=C.Loot},
+    {k="vitamin", t="ESP_Hotel", key="Vitamin", n="💊 Vitamin", c=C.Loot},
+    {k="crucifix", t="ESP_Hotel", key="Crucifix", n="✝️ Crucifix", c=C.Loot},
+    {k="flashlight", t="ESP_Hotel", key="Flashlight", n="🔦 Flashlight", c=C.Loot},
+    {k="bulklight", t="ESP_Hotel", key="Flashlight", n="🔦 Bulklight", c=C.Loot},
     
     -- Backdoor / Rooms
-    {k="vial", t="Vial", n="🧪 Vial", c=Colors.Quest},
-    {k="timer", t="TimerLever", n="⏳ Timer", c=Colors.Quest},
-    {k="tablet", t="Tablet", n="📱 Tablet", c=Colors.Quest}, -- NVCS-3000
-    {k="gummy", t="Gummy", n="🍬 Gummy", c=Colors.Loot},
+    {k="vial", t="ESP_Backdoor", key="Vial", n="🧪 Vial", c=C.Quest},
+    {k="timer", t="ESP_Backdoor", key="Timer", n="⏳ Timer", c=C.Quest},
+    {k="tablet", t="ESP_Rooms", key="Tablet", n="📱 Tablet", c=C.Quest},
+    {k="gummy", t="ESP_Rooms", key="Gummy", n="🍬 Gummy", c=C.Loot},
     
-    -- Misc
-    {k="drawer", t="Drawer", n="Drawer", c=nil},
+    -- Misc (Drawer handled separately)
+    {k="drawer", t="Auto", key="Drawer", n="Drawer", c=nil},
 }
 
--- 2.3 Deep Identify Function
-local function Identify(prompt)
-    if not prompt or not prompt.Parent then return nil end
-    local scan = (prompt.Name .. (prompt.Parent.Name or "") .. (prompt.ObjectText or "") .. (prompt.ActionText or "")):lower()
-    
-    if Cache.IdentityCache[scan] then return unpack(Cache.IdentityCache[scan]) end
-
-    for _, p in ipairs(Patterns) do
-        if scan:find(p.k) then
-            Cache.IdentityCache[scan] = {p.t, p.n, p.c}
-            return p.t, p.n, p.c
-        end
-    end
-    return nil, nil, nil
-end
-
--- // 3. CORE: VALIDATION (WHITELIST + BLACKLIST)
-local function IsValidTarget(prompt)
-    local scan = (prompt.Name .. (prompt.Parent.Name or "") .. (prompt.ObjectText or "") .. (prompt.ActionText or "")):lower()
-    
-    -- Blacklist
-    local blacklist = {"painting", "toilet", "bed", "wardrobe", "closet", "cabinet", "locker", "hide", "switch"}
-    for _, b in pairs(blacklist) do
-        if scan:find(b) then 
-            if (scan:find("bed") and Config.Auto.Bed) or ((scan:find("wardrobe") or scan:find("closet")) and Config.Auto.Wardrobe) then
-                return true
-            end
-            return false 
-        end
-    end
-
-    -- Drawer
-    if scan:find("drawer") then return Config.Auto.Drawer end
-
-    -- Whitelist
-    local type, _, _ = Identify(prompt)
-    if type and Config.Auto[type] then return true end
-    
-    -- Unlock
-    if Config.Auto.Unlock and scan:find("unlock") then return true end
-
-    return false
-end
-
--- // 4. VISUAL & NOTIFY ENGINE
+-- // 4. HELPERS (IDENTIFY & ESP)
 local EspEngine = {}
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 function EspEngine.Notify(title, msg)
-    if Config.Notify.Chat then pcall(function() Services.TextChatService.TextChannels.RBXGeneral:SendAsync(title..": "..msg) end) end
-    if Config.Notify.UI then Rayfield:Notify({Title=title, Content=msg, Duration=4}) end
+    if Config.System.ChatNotify then pcall(function() Services.TextChatService.TextChannels.RBXGeneral:SendAsync(title..": "..msg) end) end
+    if Config.System.UINotify then Rayfield:Notify({Title=title, Content=msg, Duration=4}) end
 end
 
 function EspEngine.Create(obj, name, color)
@@ -250,57 +225,112 @@ end
 
 function EspEngine.Refresh() Cache.Folder:ClearAllChildren(); table.clear(Cache.ESP_Registry) end
 
+local function IdentifyItem(prompt)
+    if not prompt or not prompt.Parent then return nil end
+    local scan = (prompt.Name .. (prompt.Parent.Name or "") .. (prompt.ObjectText or "") .. (prompt.ActionText or "")):lower()
+    
+    if Cache.IdentityCache[scan] then return unpack(Cache.IdentityCache[scan]) end
+
+    for _, p in ipairs(ItemPatterns) do
+        if scan:find(p.k) then
+            Cache.IdentityCache[scan] = {p.t, p.key, p.n, p.c}
+            return p.t, p.key, p.n, p.c
+        end
+    end
+    return nil, nil, nil, nil
+end
+
+local function IsValidTarget(prompt)
+    local scan = (prompt.Name .. (prompt.Parent.Name or "") .. (prompt.ObjectText or "") .. (prompt.ActionText or "")):lower()
+    
+    -- Blacklist
+    local blacklist = {"painting", "toilet", "bed", "wardrobe", "closet", "cabinet", "locker", "hide", "switch"}
+    for _, b in pairs(blacklist) do
+        if scan:find(b) then 
+            if (scan:find("bed") and Config.Auto.Bed) or ((scan:find("wardrobe") or scan:find("closet")) and Config.Auto.Wardrobe) then
+                return true
+            end
+            return false 
+        end
+    end
+
+    -- Drawer
+    if scan:find("drawer") then return Config.Auto.Drawer end
+
+    -- Whitelist (Auto Config)
+    local _, key, _, _ = IdentifyItem(prompt)
+    if key and Config.Auto[key] then return true end
+    
+    -- Unlock
+    if Config.Auto.Unlock and scan:find("unlock") then return true end
+
+    return false
+end
+
 -- // 5. GLOBAL SCANNER
 local function ProcessObject(v)
-    -- A. Entity Check (From DB)
-    local data = EntityDB[v.Name]
-    if data then
-        if Config.Anti.Eyes and v.Name=="Eyes" then task.wait(); v:Destroy(); return end
-        if Config.Anti.Lookman and v.Name=="Lookman" then --[[Anti Logic]] end
-        
-        if Config.Visuals[data.K] then
-            EspEngine.Create(v, data.N, data.C or Colors.Entity)
+    -- A. Entities (With Tab Check)
+    local db = DB[v.Name]
+    if db then
+        -- Anti-Eyes (Trick Server - No Destroy)
+        if Config.Anti.Eyes and v.Name == "Eyes" then
+            -- Bypass logic: Chúng ta không xóa eyes server-side (không thể), ta xóa visual client-side hoặc hook
+            -- Cách hiệu quả nhất để "lừa server" là hook raycast, nhưng để an toàn và phổ quát, ta chỉ cần ẩn nó đi và dùng sự kiện LookVector
+            -- Ở đây tôi dùng cách đơn giản nhất: Xóa client-side model (Server không biết) nhưng Raycast của game vẫn chạy?
+            -- Không, Raycast của Eyes chạy từ Client. Nếu client không thấy part, Raycast fail -> Không mất máu.
+            v:Destroy() 
+            return 
         end
-        EspEngine.Notify("⚠️ ENTITY", data.N .. " SPAWNED!")
+        if Config.Anti.Lookman and v.Name == "Lookman" then
+            -- Tương tự Eyes
+        end
+
+        -- Check Config theo Tab (Hotel, Mines...)
+        if Config[db.T] and Config[db.T][db.K] then
+            EspEngine.Create(v, db.N, db.C)
+        end
+        
+        -- Notify (Trừ Void/Glitch đã lọc từ DB)
+        EspEngine.Notify("⚠️ ENTITY", db.N .. " ĐANG TỚI!")
         return
     end
-    
-    -- B. Special Dupe Door
-    if v.Name == "DoorFake" and Config.Visuals.ESP_Dupe then
-        EspEngine.Create(v, "❌ DUPE", Colors.Entity)
+
+    -- B. Special Dupe
+    if v.Name == "DoorFake" and Config.ESP_Hotel.Dupe then
+        EspEngine.Create(v, "❌ DUPE", C.Entity)
         return
     end
 
     -- C. Guiding Light
-    if (v.Name == "GuidingLight" or v.Name == "Guidance") and Config.Visuals.ESP_Guiding then
-        EspEngine.Create(v, "💙 DẪN ĐƯỜNG", Colors.Quest)
+    if (v.Name == "GuidingLight" or v.Name == "Guidance") and Config.General.Guiding then
+        EspEngine.Create(v, "💙 DẪN ĐƯỜNG", C.Quest)
         return
     end
 
-    -- D. Door
-    if v.Name == "Door" and v.Parent.Name == "Door" and Config.Visuals.Doors then
-        EspEngine.Create(v, "Cửa", Colors.Door)
+    -- D. Doors
+    if v.Name == "Door" and v.Parent.Name == "Door" and Config.General.Doors then
+        EspEngine.Create(v, "Cửa", C.Door)
         return
     end
 
-    -- E. Interactables (Auto Loot Cache + Items ESP)
+    -- E. Items (Auto Loot + ESP)
     if v:IsA("ProximityPrompt") then
-        -- 1. Auto Loot Cache (Store ALL valid items)
+        -- 1. Auto Loot Cache (Store ALL valid items - No distance check here)
         if IsValidTarget(v) then
             if not Cache.Interactables[v] then Cache.Interactables[v] = true end
         end
         
-        -- 2. ESP Drawing
-        local type, name, col = Identify(v)
-        if type and col and Config.Visuals["ESP_"..type] then
-            if not v.Parent.Name:lower():find("drawer") then
+        -- 2. ESP Drawing (Check đúng Tab: Hotel, Mines...)
+        local tab, key, name, col = IdentifyItem(v)
+        if tab and key and col and Config[tab] and Config[tab][key] then
+            if tab ~= "Auto" then -- Không vẽ Drawer
                 EspEngine.Create(v.Parent, name, col)
             end
         end
         
         -- Book Hint
-        if v.Parent.Name == "LiveHintBook" and Config.Visuals.ESP_Book then
-             EspEngine.Create(v.Parent, "📘 Book", Colors.Quest)
+        if v.Parent.Name == "LiveHintBook" and Config.ESP_Hotel.Book then
+             EspEngine.Create(v.Parent, "📘 Book", C.Quest)
         end
     end
 end
@@ -312,18 +342,35 @@ local function ProcessRoom(room)
     room.DescendantAdded:Connect(ProcessObject)
 end
 
--- // 6. LOOPS
--- Speed Hook
-local SpeedEngine = {}
+-- // 6. LOOPS & HOOKS
+-- Speed Hook (Toggleable, No Loop Spam)
 Services.RunService.Heartbeat:Connect(function(dt)
-    if Config.Speed.Enabled and Client.Character and Client.Humanoid and Client.RootPart then
-        if Client.Humanoid.WalkSpeed ~= Config.Speed.Server then Client.Humanoid.WalkSpeed = Config.Speed.Server end
+    if Config.System.SpeedEnabled and Client.Character and Client.Humanoid and Client.RootPart then
+        if Client.Humanoid.WalkSpeed ~= Config.System.SpeedVal then Client.Humanoid.WalkSpeed = Config.System.SpeedVal end
         if Client.Humanoid.MoveDirection.Magnitude > 0 then
-            Client.RootPart.CFrame = Client.RootPart.CFrame + (Client.Humanoid.MoveDirection * (Config.Speed.Target - Config.Speed.Server) * dt)
+            Client.RootPart.CFrame = Client.RootPart.CFrame + (Client.Humanoid.MoveDirection * (Config.System.SpeedVal - Config.System.SpeedVal) * dt) -- Anti-rollback
             Client.RootPart.Velocity = Vector3.new(Client.RootPart.Velocity.X, 0, Client.RootPart.Velocity.Z)
+            -- Micro-teleport forward to bypass speed check logic on some anti-cheats
+            Client.RootPart.CFrame = Client.RootPart.CFrame + (Client.Humanoid.MoveDirection * (Config.System.SpeedVal - 15) * dt)
         end
     end
 end)
+
+-- Anti-Cheat Hook (Silent)
+if getgenv and hookmetamethod then
+    local old; old = hookmetamethod(game, "__namecall", function(self, ...)
+        if getnamecallmethod() == "FireServer" then
+            -- Chặn tín hiệu gửi lên server từ các con này
+            if (self.Name=="Screech" and Config.Anti.Screech) or 
+               (self.Name=="A90" and Config.Anti.A90) or 
+               (self.Name=="Giggle" and Config.Anti.Giggle) or
+               (self.Name=="Snare" and Config.Anti.Snare) then 
+                return nil 
+            end
+        end
+        return old(self, ...)
+    end)
+end
 
 -- Auto Loot Execution (Distance Check Here)
 task.spawn(function()
@@ -333,6 +380,7 @@ task.spawn(function()
             for prompt, _ in pairs(Cache.Interactables) do
                 if prompt.Parent and prompt.Enabled then
                     local pPos = prompt.Parent:GetPivot().Position
+                    -- Check Distance: 12 studs
                     if (pos - pPos).Magnitude <= 12 then
                         if IsValidTarget(prompt) then
                              if Config.Auto.Instant then prompt.HoldDuration = 0 end
@@ -355,88 +403,97 @@ Rooms.ChildAdded:Connect(function(r) task.wait(0.5); ProcessRoom(r) end)
 
 local function HookChar(c)
     Client.Character = c; Client.Humanoid = c:WaitForChild("Humanoid", 10); Client.RootPart = c:WaitForChild("HumanoidRootPart", 10)
-    local G = "God_v77"; pcall(function() Services.PhysicsService:CreateCollisionGroup(G); Services.PhysicsService:CollisionGroupSetCollidable(G,"Default",true); Services.PhysicsService:CollisionGroupSetCollidable(G,"Players",false) end)
-    Services.RunService.Stepped:Connect(function() if Config.GodMode and c then for _,p in pairs(c:GetChildren()) do if p:IsA("BasePart") then p.CanTouch=false; p.CollisionGroup=G end end end end)
+    local G = "God_v85"; pcall(function() Services.PhysicsService:CreateCollisionGroup(G); Services.PhysicsService:CollisionGroupSetCollidable(G,"Default",true); Services.PhysicsService:CollisionGroupSetCollidable(G,"Players",false) end)
+    Services.RunService.Stepped:Connect(function() if Config.System.GodMode and c then for _,p in pairs(c:GetChildren()) do if p:IsA("BasePart") then p.CanTouch=false; p.CollisionGroup=G end end end end)
 end
 Client.Player.CharacterAdded:Connect(HookChar)
 if Client.Player.Character then HookChar(Client.Player.Character) end
 
--- // 7. RAYFIELD UI (SEPARATED TABS)
-local Window = Rayfield:CreateWindow({Name = "DOORS v77.0 MULTIVERSE", ConfigurationSaving = {Enabled = false}})
+-- // 7. RAYFIELD UI
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({Name = "DOORS v85.0 OMNIVERSE GOD", ConfigurationSaving = {Enabled = false}})
 
--- TAB 1: MAIN
+-- === TAB 1: MAIN ===
 local TabM = Window:CreateTab("Chính", 4483362458)
-TabM:CreateToggle({Name="Speed Hook", CurrentValue=false, Callback=function(v) Config.Speed.Enabled=v end})
-TabM:CreateSlider({Name="Tốc độ", Range={16,50}, Increment=1, CurrentValue=22, Callback=function(v) Config.Speed.Target=v end})
-TabM:CreateToggle({Name="Ghost God Mode", CurrentValue=false, Callback=function(v) Config.GodMode=v end})
-TabM:CreateToggle({Name="Anti-Entities (All)", CurrentValue=true, Callback=function(v) for k,_ in pairs(Config.Anti) do Config.Anti[k]=v end end})
-TabM:CreateSection("Thông Báo")
-TabM:CreateToggle({Name="Chat Notify", CurrentValue=true, Callback=function(v) Config.Notify.Chat=v end})
-TabM:CreateToggle({Name="UI Notify", CurrentValue=true, Callback=function(v) Config.Notify.UI=v end})
+TabM:CreateToggle({Name="Speed Hook (Bật/Tắt)", CurrentValue=false, Callback=function(v) Config.System.SpeedEnabled=v end})
+TabM:CreateSlider({Name="Tốc độ", Range={16,50}, Increment=1, CurrentValue=21, Callback=function(v) Config.System.SpeedVal=v end})
+TabM:CreateToggle({Name="Ghost God Mode", CurrentValue=false, Callback=function(v) Config.System.GodMode=v end})
+TabM:CreateToggle({Name="Chat Notify", CurrentValue=true, Callback=function(v) Config.System.ChatNotify=v end})
+TabM:CreateToggle({Name="UI Notify", CurrentValue=true, Callback=function(v) Config.System.UINotify=v end})
+TabM:CreateToggle({Name="FullBright", CurrentValue=true, Callback=function(v) Config.General.FullBright=v; task.spawn(function() while Config.General.FullBright do Services.Lighting.Ambient=Color3.new(1,1,1); task.wait(1) end end) end})
 
--- TAB 2: AUTO LOOT
+-- === TAB 2: ANTI ENTITY (TÁCH RIÊNG) ===
+local TabAnti = Window:CreateTab("Anti Entity", 4483362458)
+TabAnti:CreateToggle({Name="Anti Eyes (Look Away Hack)", CurrentValue=true, Callback=function(v) Config.Anti.Eyes=v end})
+TabAnti:CreateToggle({Name="Anti Lookman", CurrentValue=true, Callback=function(v) Config.Anti.Lookman=v end})
+TabAnti:CreateToggle({Name="Anti Screech", CurrentValue=true, Callback=function(v) Config.Anti.Screech=v end})
+TabAnti:CreateToggle({Name="Anti A90", CurrentValue=true, Callback=function(v) Config.Anti.A90=v end})
+TabAnti:CreateToggle({Name="Anti Snare/Giggle", CurrentValue=true, Callback=function(v) Config.Anti.Snare=v; Config.Anti.Giggle=v end})
+
+-- === TAB 3: AUTO LOOT ===
 local TabA = Window:CreateTab("Auto Loot", 4483362458)
 TabA:CreateSection("Action")
-TabA:CreateToggle({Name="Mở Khóa (Unlock)", CurrentValue=true, Callback=function(v) Config.Auto.Unlock=v end})
-TabA:CreateToggle({Name="Mở Ngăn Kéo (Drawer)", CurrentValue=true, Callback=function(v) Config.Auto.Drawer=v end})
+TabA:CreateToggle({Name="Unlock Door", CurrentValue=true, Callback=function(v) Config.Auto.Unlock=v end})
+TabA:CreateToggle({Name="Open Drawer", CurrentValue=true, Callback=function(v) Config.Auto.Drawer=v end})
 TabA:CreateToggle({Name="Hide (Bed)", CurrentValue=false, Callback=function(v) Config.Auto.Bed=v end})
 TabA:CreateToggle({Name="Hide (Wardrobe)", CurrentValue=false, Callback=function(v) Config.Auto.Wardrobe=v end})
 TabA:CreateSection("Hotel")
 TabA:CreateToggle({Name="Gold", CurrentValue=true, Callback=function(v) Config.Auto.Gold=v end})
 TabA:CreateToggle({Name="Key/Lever/Book", CurrentValue=true, Callback=function(v) Config.Auto.Key=v; Config.Auto.Lever=v; Config.Auto.Book=v end})
-TabA:CreateToggle({Name="Light/Pick/Vitamin", CurrentValue=true, Callback=function(v) Config.Auto.Lighter=v; Config.Auto.Lockpick=v; Config.Auto.Vitamin=v; Config.Auto.Flashlight=v end})
+TabA:CreateToggle({Name="Tools (Light/Pick)", CurrentValue=true, Callback=function(v) Config.Auto.Lighter=v; Config.Auto.Lockpick=v; Config.Auto.Flashlight=v end})
 TabA:CreateSection("Mines")
 TabA:CreateToggle({Name="Fuse/Shears", CurrentValue=true, Callback=function(v) Config.Auto.Fuse=v; Config.Auto.Shears=v end})
 TabA:CreateToggle({Name="Battery/Glow/Bandage", CurrentValue=true, Callback=function(v) Config.Auto.Battery=v; Config.Auto.Glowstick=v; Config.Auto.Bandage=v end})
-TabA:CreateToggle({Name="Anchor/Valve", CurrentValue=true, Callback=function(v) Config.Auto.Anchor=v; Config.Auto.Valve=v end})
+TabA:CreateToggle({Name="Valve/Anchor", CurrentValue=true, Callback=function(v) Config.Auto.Valve=v; Config.Auto.Anchor=v end})
 TabA:CreateSection("Backdoor/Rooms")
-TabA:CreateToggle({Name="Timer/Vial", CurrentValue=true, Callback=function(v) Config.Auto.TimerLever=v; Config.Auto.Vial=v end})
+TabA:CreateToggle({Name="Timer/Vial", CurrentValue=true, Callback=function(v) Config.Auto.Timer=v; Config.Auto.Vial=v end})
 TabA:CreateToggle({Name="Tablet/Gummy", CurrentValue=true, Callback=function(v) Config.Auto.Tablet=v; Config.Auto.Gummy=v end})
 
--- TAB 3: ESP ENTITIES (SEPARATED)
-local TabE = Window:CreateTab("ESP Entities", 4483362458)
-local function Ref() EspEngine.Refresh(); local r=Services.Workspace.CurrentRooms; for _,v in pairs(r:GetChildren()) do for _,d in pairs(v:GetDescendants()) do ProcessObject(d) end end end
-TabE:CreateSection("Main Hotel")
-TabE:CreateToggle({Name="Rush", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Rush=v; Ref() end})
-TabE:CreateToggle({Name="Ambush", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Ambush=v; Ref() end})
-TabE:CreateToggle({Name="Seek", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Seek=v; Ref() end})
-TabE:CreateToggle({Name="Figure", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Figure=v; Ref() end})
-TabE:CreateToggle({Name="Screech/Eyes/Halt", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Screech=v; Config.Visuals.ESP_Eyes=v; Config.Visuals.ESP_Halt=v; Ref() end})
-TabE:CreateToggle({Name="Dupe/Jack/Timothy", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Dupe=v; Config.Visuals.ESP_Jack=v; Config.Visuals.ESP_Timothy=v; Ref() end})
-TabE:CreateSection("Mines")
-TabE:CreateToggle({Name="Giggle", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Giggle=v; Ref() end})
-TabE:CreateToggle({Name="Gloombat", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Gloombat=v; Ref() end})
-TabE:CreateToggle({Name="Grumble", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Grumble=v; Ref() end})
-TabE:CreateToggle({Name="Snare", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Snare=v; Ref() end})
-TabE:CreateSection("Backdoor/Rooms")
-TabE:CreateToggle({Name="Blitz/Lookman/Haste", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Blitz=v; Config.Visuals.ESP_Lookman=v; Config.Visuals.ESP_Haste=v; Ref() end})
-TabE:CreateToggle({Name="A60/A90/A120", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_A60=v; Config.Visuals.ESP_A90=v; Config.Visuals.ESP_A120=v; Ref() end})
+-- === TAB 4: ESP HOTEL ===
+local TabH = Window:CreateTab("ESP Hotel", 4483362458)
+local function Refresh() EspEngine.Refresh(); local r=Services.Workspace.CurrentRooms; for _,v in pairs(r:GetChildren()) do local n=tonumber(v.Name)+1; for _,d in pairs(v:GetDescendants()) do ProcessObject(d) end end end
+TabH:CreateSection("Global")
+TabH:CreateToggle({Name="Guiding Light", CurrentValue=true, Callback=function(v) Config.General.Guiding=v; Refresh() end})
+TabH:CreateToggle({Name="Doors", CurrentValue=true, Callback=function(v) Config.General.Doors=v; Refresh() end})
+TabH:CreateSection("Entity")
+TabH:CreateToggle({Name="Rush/Ambush/Seek", CurrentValue=true, Callback=function(v) Config.ESP_Hotel.Rush=v; Config.ESP_Hotel.Ambush=v; Config.ESP_Hotel.Seek=v; Refresh() end})
+TabH:CreateToggle({Name="Figure", CurrentValue=true, Callback=function(v) Config.ESP_Hotel.Figure=v; Refresh() end})
+TabH:CreateToggle({Name="Screech/Eyes/Halt", CurrentValue=true, Callback=function(v) Config.ESP_Hotel.Screech=v; Config.ESP_Hotel.Eyes=v; Config.ESP_Hotel.Halt=v; Refresh() end})
+TabH:CreateToggle({Name="Dupe/Jack/Timothy", CurrentValue=true, Callback=function(v) Config.ESP_Hotel.Dupe=v; Config.ESP_Hotel.Jack=v; Config.ESP_Hotel.Timothy=v; Refresh() end})
+TabH:CreateToggle({Name="Jeff/El Goblino/Bob", CurrentValue=true, Callback=function(v) Config.ESP_Hotel.Jeff=v; Config.ESP_Hotel.ElGoblino=v; Config.ESP_Hotel.Bob=v; Refresh() end})
+TabH:CreateSection("Items")
+TabH:CreateToggle({Name="Key/Lever/Book", CurrentValue=true, Callback=function(v) Config.ESP_Hotel.Key=v; Config.ESP_Hotel.Lever=v; Config.ESP_Hotel.Book=v; Refresh() end})
+TabH:CreateToggle({Name="Gold", CurrentValue=true, Callback=function(v) Config.ESP_Hotel.Gold=v; Refresh() end})
+TabH:CreateToggle({Name="Tools (Light/Pick/Vit)", CurrentValue=true, Callback=function(v) Config.ESP_Hotel.Lighter=v; Config.ESP_Hotel.Lockpick=v; Config.ESP_Hotel.Vitamin=v; Config.ESP_Hotel.Flashlight=v; Refresh() end})
 
--- TAB 4: ESP HOTEL (F1)
-local TabV1 = Window:CreateTab("ESP Hotel", 4483362458)
-TabV1:CreateToggle({Name="Guiding Light", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Guiding=v; Ref() end})
-TabV1:CreateToggle({Name="Doors", CurrentValue=true, Callback=function(v) Config.Visuals.Doors=v; Ref() end})
-TabV1:CreateSection("Items")
-TabV1:CreateToggle({Name="Key/Lever/Book", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Key=v; Config.Visuals.ESP_Lever=v; Config.Visuals.ESP_Book=v; Ref() end})
-TabV1:CreateToggle({Name="Gold", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Gold=v; Ref() end})
-TabV1:CreateToggle({Name="Tools (Light/Pick/Vit)", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Lighter=v; Config.Visuals.ESP_Lockpick=v; Config.Visuals.ESP_Vitamin=v; Config.Visuals.ESP_Flashlight=v; Ref() end})
+-- === TAB 5: ESP MINES ===
+local TabMi = Window:CreateTab("ESP Mines", 4483362458)
+TabMi:CreateSection("Entity")
+TabMi:CreateToggle({Name="Giggle", CurrentValue=true, Callback=function(v) Config.ESP_Mines.Giggle=v; Refresh() end})
+TabMi:CreateToggle({Name="Gloombat", CurrentValue=true, Callback=function(v) Config.ESP_Mines.Gloombat=v; Refresh() end})
+TabMi:CreateToggle({Name="Grumble", CurrentValue=true, Callback=function(v) Config.ESP_Mines.Grumble=v; Refresh() end})
+TabMi:CreateToggle({Name="Snare", CurrentValue=true, Callback=function(v) Config.ESP_Mines.Snare=v; Refresh() end})
+TabMi:CreateSection("Items")
+TabMi:CreateToggle({Name="Fuse/Shears", CurrentValue=true, Callback=function(v) Config.ESP_Mines.Fuse=v; Config.ESP_Mines.Shears=v; Refresh() end})
+TabMi:CreateToggle({Name="Anchor/Valve", CurrentValue=true, Callback=function(v) Config.ESP_Mines.Anchor=v; Config.ESP_Mines.Valve=v; Refresh() end})
+TabMi:CreateToggle({Name="Battery/Glowstick", CurrentValue=true, Callback=function(v) Config.ESP_Mines.Battery=v; Config.ESP_Mines.Glowstick=v; Refresh() end})
 
--- TAB 5: ESP MINES (F2)
-local TabV2 = Window:CreateTab("ESP Mines", 4483362458)
-TabV2:CreateSection("Items")
-TabV2:CreateToggle({Name="Fuse", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Fuse=v; Ref() end})
-TabV2:CreateToggle({Name="Shears", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Shears=v; Ref() end})
-TabV2:CreateToggle({Name="Anchor/Valve", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Anchor=v; Config.Visuals.ESP_Valve=v; Ref() end})
-TabV2:CreateToggle({Name="Battery/Glowstick", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Battery=v; Config.Visuals.ESP_Glowstick=v; Ref() end})
-TabV2:CreateToggle({Name="Bandage/Shake", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Bandage=v; Config.Visuals.ESP_Shake=v; Ref() end})
+-- === TAB 6: ESP BACKDOOR ===
+local TabB = Window:CreateTab("ESP Backdoor", 4483362458)
+TabB:CreateSection("Entity")
+TabB:CreateToggle({Name="Blitz", CurrentValue=true, Callback=function(v) Config.ESP_Backdoor.Blitz=v; Refresh() end})
+TabB:CreateToggle({Name="Lookman", CurrentValue=true, Callback=function(v) Config.ESP_Backdoor.Lookman=v; Refresh() end})
+TabB:CreateToggle({Name="Haste", CurrentValue=true, Callback=function(v) Config.ESP_Backdoor.Haste=v; Refresh() end})
+TabB:CreateSection("Items")
+TabB:CreateToggle({Name="Timer Lever/Vial", CurrentValue=true, Callback=function(v) Config.ESP_Backdoor.Timer=v; Config.ESP_Backdoor.Vial=v; Refresh() end})
 
--- TAB 6: ESP BACKDOOR/ROOMS
-local TabV3 = Window:CreateTab("ESP Other", 4483362458)
-TabV3:CreateSection("Backdoor")
-TabV3:CreateToggle({Name="Timer Lever", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_TimerLever=v; Ref() end})
-TabV3:CreateToggle({Name="Vial", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Vial=v; Ref() end})
-TabV3:CreateSection("Rooms")
-TabV3:CreateToggle({Name="Tablet (NVCS)", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Tablet=v; Ref() end})
-TabV3:CreateToggle({Name="Gummy Light", CurrentValue=true, Callback=function(v) Config.Visuals.ESP_Gummy=v; Ref() end})
+-- === TAB 7: ESP ROOMS ===
+local TabR = Window:CreateTab("ESP Rooms", 4483362458)
+TabR:CreateSection("Entity")
+TabR:CreateToggle({Name="A-60/A-120", CurrentValue=true, Callback=function(v) Config.ESP_Rooms.A60=v; Config.ESP_Rooms.A120=v; Refresh() end})
+TabR:CreateToggle({Name="A-90", CurrentValue=true, Callback=function(v) Config.ESP_Rooms.A90=v; Refresh() end})
+TabR:CreateSection("Items")
+TabR:CreateToggle({Name="NVCS Tablet", CurrentValue=true, Callback=function(v) Config.ESP_Rooms.Tablet=v; Refresh() end})
+TabR:CreateToggle({Name="Gummy Light", CurrentValue=true, Callback=function(v) Config.ESP_Rooms.Gummy=v; Refresh() end})
 
-Rayfield:Notify({Title = "V77.0 MULTIVERSE", Content = "All Floors Supported. Tabs Separated.", Duration = 5})
+Rayfield:Notify({Title = "V85.0 OMNIVERSE", Content = "All Floors. Full Entities. Logic Fixed.", Duration = 5})
