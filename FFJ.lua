@@ -1,7 +1,7 @@
--- [[ DOORS SUPREMACY v101.0 - THE FINAL GOD ]]
--- Device: Optimized for Mobile (Oppo A18).
--- Database: 100% Accurate Internal Names.
--- Logic: Cache-Based Auto Loot + Distance Trigger (12 Studs).
+-- [[ DOORS SUPREMACY v102.0 - THE OMNIVERSE TITAN ]]
+-- Device: Optimized for Oppo A18 (Low CPU Usage).
+-- Logic: Cache-Based Auto Loot + Proximity Trigger (12 Studs).
+-- Content: Hotel | Mines | Backdoor | Rooms.
 -- Anti-Eyes: Remote Spoofing (No Model Deletion).
 
 local Services = {
@@ -24,14 +24,14 @@ local Client = {
 
 -- // 1. MEMORY MANAGEMENT (WEAK TABLES - ZERO LEAK)
 local Cache = {
-    Folder = game.CoreGui:FindFirstChild("Doors_v101_God") or Instance.new("Folder", game.CoreGui),
-    -- Weak Tables: Tự động xóa dữ liệu khi object trong game bị hủy (Quan trọng cho Oppo A18)
+    Folder = game.CoreGui:FindFirstChild("Doors_v102_Titan") or Instance.new("Folder", game.CoreGui),
+    -- Weak Tables: Tự động xóa dữ liệu khi object trong game bị hủy (Quan trọng cho máy yếu)
     Interactables = setmetatable({}, { __mode = "k" }), 
     ProcessedRooms = setmetatable({}, { __mode = "k" }),
     ESP_Registry = setmetatable({}, { __mode = "k" }),
     IdentityCache = {} 
 }
-Cache.Folder.Name = "Doors_v101_God"
+Cache.Folder.Name = "Doors_v102_Titan"
 
 -- // 2. CONFIGURATION
 local Config = {
@@ -48,7 +48,7 @@ local Config = {
         Unlock=true, Drawer=true, Instant=true,
         Bed=false, Wardrobe=false,
         
-        -- Global Whitelist (Tất cả Floor)
+        -- Global Item Whitelist
         KeyObtain=true, Lockpicks=true, Vitamins=true, Lighter=true, Candle=true,
         Flashlight=true, Crucifix=true, SkeletonKey=true, Herb=true, BandagePack=true,
         
@@ -142,10 +142,9 @@ local EntityDB = {
     -- [MINES]
     ["GrumbleRig"]      = {N="🐛 GRUMBLE", T="ESP_Mines", K="GrumbleRig", C=C.Entity},
     ["Giggle"]          = {N="🤪 GIGGLE", T="ESP_Mines", K="Giggle", C=C.Entity},
-    ["GiggleCeiling"]   = {N="🤪 GIGGLE", T="ESP_Mines", K="Giggle", C=C.Entity},
     ["Lookman"]         = {N="👀 LOOKMAN", T="ESP_Mines", K="Lookman", C=C.Entity},
     ["Snare"]           = {N="🚫 BẪY", T="ESP_Mines", K="Snare", C=C.Entity},
-    ["Gloombat"]        = {N="🦇 BAT", T="ESP_Mines", K="Gloombat", C=C.Entity},
+    ["Gloombat"]        = {N="🦇 BAT", T="ESP_Mines", K="Gloombat", C=C.Entity}, 
 
     -- [BACKDOOR]
     ["Blitz"]           = {N="⚡ BLITZ", T="ESP_Backdoor", K="Blitz", C=C.Backdoor},
@@ -170,10 +169,9 @@ local ItemPatterns = {
     {k="crucifix", t="ESP_Hotel", key="Crucifix", n="✝️ Crucifix", c=C.Loot},
     {k="skeletonkey", t="ESP_Hotel", key="SkeletonKey", n="💀 Skeleton Key", c=C.Quest},
     {k="herb", t="ESP_Hotel", key="Herb", n="🌿 Herb", c=C.Loot},
-    {k="bandage", t="ESP_Hotel", key="BandagePack", n="🩹 Bandage", c=C.Loot},
+    {k="bandage", t="ESP_Hotel", key="BandagePack", n="🩹 Bandage", c=C.Loot}, 
     {k="lever", t="ESP_Hotel", key="Lever", n="🕹️ Lever", c=C.Quest},
     {k="livebook", t="ESP_Hotel", key="LiveBook", n="📘 Book", c=C.Quest},
-    {k="book", t="ESP_Hotel", key="LiveBook", n="📘 Book", c=C.Quest},
     {k="breakerswitch", t="ESP_Hotel", key="BreakerSwitch", n="⚡ Breaker", c=C.Quest},
     {k="gold", t="ESP_Hotel", key="Gold", n="💰 Gold", c=C.Loot},
     
@@ -215,6 +213,7 @@ function EspEngine.Create(obj, name, color)
     container.Name = "ESP"
     Cache.ESP_Registry[obj] = container
     
+    -- Highlight Visuals
     local hl = Instance.new("Highlight", container)
     hl.Adornee = obj; hl.FillColor = color; hl.OutlineColor = color
     hl.FillTransparency = 0.6; hl.OutlineTransparency = 0; hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
@@ -284,7 +283,9 @@ local function ProcessObject(v)
         end
         
         -- Notify (NO VOID/GLITCH/SHADOW)
-        EspEngine.Notify("⚠️ ENTITY", entData.N .. " ĐANG TỚI!")
+        if v.Name ~= "Glitch" and v.Name ~= "Void" and v.Name ~= "Shadow" then
+            EspEngine.Notify("⚠️ ENTITY", entData.N .. " ĐANG TỚI!")
+        end
         return
     end
 
@@ -391,6 +392,14 @@ local Rooms = Services.Workspace:WaitForChild("CurrentRooms")
 for _, r in pairs(Rooms:GetChildren()) do task.spawn(ProcessRoom, r) end
 Rooms.ChildAdded:Connect(function(r) task.wait(0.5); ProcessRoom(r) end)
 
+local function HookChar(c)
+    Client.Character = c; Client.Humanoid = c:WaitForChild("Humanoid", 10); Client.RootPart = c:WaitForChild("HumanoidRootPart", 10)
+    local G = "God_v101"; pcall(function() Services.PhysicsService:CreateCollisionGroup(G); Services.PhysicsService:CollisionGroupSetCollidable(G,"Default",true); Services.PhysicsService:CollisionGroupSetCollidable(G,"Players",false) end)
+    Services.RunService.Stepped:Connect(function() if Config.System.GodMode and c then for _,p in pairs(c:GetChildren()) do if p:IsA("BasePart") then p.CanTouch=false; p.CollisionGroup=G end end end end)
+end
+Client.Player.CharacterAdded:Connect(HookChar)
+if Client.Player.Character then HookChar(Client.Player.Character) end
+
 -- // 8. RAYFIELD UI (GOD TIER)
 local Window = Rayfield:CreateWindow({Name = "DOORS v101.0 FINAL GOD", ConfigurationSaving = {Enabled = false}})
 
@@ -453,7 +462,7 @@ TabH:CreateToggle({Name="Light/Pick/Vit/Crucifix", CurrentValue=true, Callback=f
 -- TAB ESP MINES
 local TabMi = Window:CreateTab("ESP Mines", 4483362458)
 TabMi:CreateSection("Entity")
-TabMi:CreateToggle({Name="Giggle", CurrentValue=true, Callback=function(v) Config.ESP_Mines.Giggle=v; Ref() end})
+TabMi:CreateToggle({Name="Giggle", CurrentValue=true, Callback=function(v) Config.ESP_Mines.GiggleCeiling=v; Ref() end})
 TabMi:CreateToggle({Name="Gloombat", CurrentValue=true, Callback=function(v) Config.ESP_Mines.Gloombat=v; Ref() end})
 TabMi:CreateToggle({Name="Grumble", CurrentValue=true, Callback=function(v) Config.ESP_Mines.GrumbleRig=v; Ref() end})
 TabMi:CreateToggle({Name="Snare", CurrentValue=true, Callback=function(v) Config.ESP_Mines.Snare=v; Ref() end})
