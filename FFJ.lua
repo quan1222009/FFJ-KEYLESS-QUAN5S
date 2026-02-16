@@ -1,8 +1,8 @@
--- [[ DOORS SUPREMACY v102.0 - THE OMNIVERSE TITAN ]]
--- Device: Optimized for Oppo A18 (Low CPU Usage).
--- Logic: Cache-Based Auto Loot + Proximity Trigger (12 Studs).
+-- [[ DOORS SUPREMACY v105.0 - THE FINAL GOD ]]
+-- Device: Optimized for Oppo A18.
+-- Logic: Auto Loot Cache -> Distance Check Loop.
+-- Anti: Eyes (Spoof), Figure (Mute Signal), Screech/A90/Snare (Block).
 -- Content: Hotel | Mines | Backdoor | Rooms.
--- Anti-Eyes: Remote Spoofing (No Model Deletion).
 
 local Services = {
     Players = game:GetService("Players"),
@@ -24,14 +24,14 @@ local Client = {
 
 -- // 1. MEMORY MANAGEMENT (WEAK TABLES - ZERO LEAK)
 local Cache = {
-    Folder = game.CoreGui:FindFirstChild("Doors_v102_Titan") or Instance.new("Folder", game.CoreGui),
-    -- Weak Tables: Tự động xóa dữ liệu khi object trong game bị hủy (Quan trọng cho máy yếu)
+    Folder = game.CoreGui:FindFirstChild("Doors_v105_God") or Instance.new("Folder", game.CoreGui),
+    -- Weak Tables: Tự động xóa dữ liệu khi object trong game bị hủy
     Interactables = setmetatable({}, { __mode = "k" }), 
     ProcessedRooms = setmetatable({}, { __mode = "k" }),
     ESP_Registry = setmetatable({}, { __mode = "k" }),
     IdentityCache = {} 
 }
-Cache.Folder.Name = "Doors_v102_Titan"
+Cache.Folder.Name = "Doors_v105_God"
 
 -- // 2. CONFIGURATION
 local Config = {
@@ -74,7 +74,7 @@ local Config = {
     
     ESP_Mines = {
         -- Entities
-        Giggle=true, GrumbleRig=true, Lookman=true, Snare=true, Gloombat=true,
+        Giggle=true, GrumbleRig=true, Lookman=true, Snare=true, Gloombat=true, Haste=true,
         -- Items
         Glowstick=true, Battery=true, Pickaxe=true, Fuse=true, Shears=true, 
         Anchor=true, Valve=true
@@ -101,8 +101,9 @@ local Config = {
     },
     
     Anti = {
-        Eyes=true,    -- Spoofing (No delete)
+        Eyes=true,    -- Spoofing (Block signal)
         Lookman=true, -- Spoofing
+        Figure=true,  -- Spoofing (Block heart/step signal)
         Screech=true,
         A90=true,
         Snare=true,
@@ -127,6 +128,7 @@ local EntityDB = {
     ["RushMoving"]      = {N="🚨 RUSH", T="ESP_Hotel", K="RushMoving", C=C.Entity},
     ["AmbushMoving"]    = {N="⚡ AMBUSH", T="ESP_Hotel", K="AmbushMoving", C=C.Entity},
     ["SeekMoving"]      = {N="👁️ SEEK", T="ESP_Hotel", K="SeekMoving", C=C.Entity},
+    ["SeekRig"]         = {N="👁️ SEEK", T="ESP_Hotel", K="SeekMoving", C=C.Entity},
     ["FigureRig"]       = {N="👺 FIGURE", T="ESP_Hotel", K="FigureRig", C=C.Entity},
     ["Screech"]         = {N="👾 SCREECH", T="ESP_Hotel", K="Screech", C=C.Entity},
     ["Eyes"]            = {N="👀 EYES", T="ESP_Hotel", K="Eyes", C=C.Entity},
@@ -142,14 +144,15 @@ local EntityDB = {
     -- [MINES]
     ["GrumbleRig"]      = {N="🐛 GRUMBLE", T="ESP_Mines", K="GrumbleRig", C=C.Entity},
     ["Giggle"]          = {N="🤪 GIGGLE", T="ESP_Mines", K="Giggle", C=C.Entity},
-    ["Lookman"]         = {N="👀 LOOKMAN", T="ESP_Mines", K="Lookman", C=C.Entity},
+    ["GiggleCeiling"]   = {N="🤪 GIGGLE", T="ESP_Mines", K="Giggle", C=C.Entity},
+    ["Lookman"]         = {N="👀 LOOKMAN", T="ESP_Mines", K="Lookman", C=C.Entity}, -- Also Backdoor
     ["Snare"]           = {N="🚫 BẪY", T="ESP_Mines", K="Snare", C=C.Entity},
-    ["Gloombat"]        = {N="🦇 BAT", T="ESP_Mines", K="Gloombat", C=C.Entity}, 
+    ["Gloombat"]        = {N="🦇 BAT", T="ESP_Mines", K="Gloombat", C=C.Entity},
+    ["Haste"]           = {N="⏳ HASTE", T="ESP_Mines", K="Haste", C=C.Entity}, -- Also Backdoor
 
     -- [BACKDOOR]
     ["Blitz"]           = {N="⚡ BLITZ", T="ESP_Backdoor", K="Blitz", C=C.Backdoor},
     ["Vacuum"]          = {N="🌪️ VACUUM", T="ESP_Backdoor", K="Vacuum", C=C.Backdoor},
-    ["Haste"]           = {N="⏳ HASTE", T="ESP_Backdoor", K="Haste", C=C.Backdoor},
 
     -- [ROOMS]
     ["A60"]             = {N="A-60", T="ESP_Rooms", K="A60", C=C.Entity},
@@ -196,7 +199,7 @@ local ItemPatterns = {
     {k="drawer", t="Auto", key="Drawer", n="Drawer", c=nil},
 }
 
--- // 5. HELPERS (IDENTIFY & ESP)
+-- // 5. HELPERS
 local EspEngine = {}
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
@@ -213,7 +216,6 @@ function EspEngine.Create(obj, name, color)
     container.Name = "ESP"
     Cache.ESP_Registry[obj] = container
     
-    -- Highlight Visuals
     local hl = Instance.new("Highlight", container)
     hl.Adornee = obj; hl.FillColor = color; hl.OutlineColor = color
     hl.FillTransparency = 0.6; hl.OutlineTransparency = 0; hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
@@ -248,7 +250,7 @@ end
 local function IsValidTarget(prompt)
     local scan = (prompt.Name .. (prompt.Parent.Name or "") .. (prompt.ObjectText or "") .. (prompt.ActionText or "")):lower()
     
-    -- Blacklist (Giường/Tủ/Thùng rác)
+    -- Blacklist (Chỉ lọc các vật thể trốn hoặc rác)
     local blacklist = {"painting", "toilet", "bed", "wardrobe", "closet", "cabinet", "locker", "hide", "switch"}
     for _, b in pairs(blacklist) do
         if scan:find(b) then 
@@ -272,9 +274,9 @@ local function IsValidTarget(prompt)
     return false
 end
 
--- // 6. GLOBAL SCANNER (CACHE ALL, FILTER LATER)
+-- // 6. GLOBAL SCANNER (CACHE FIRST - NO DISTANCE CHECK)
 local function ProcessObject(v)
-    -- A. Entities (Full Check from Database)
+    -- A. Entities (Full Check)
     local entData = EntityDB[v.Name]
     if entData then
         -- ESP Check
@@ -282,8 +284,8 @@ local function ProcessObject(v)
             EspEngine.Create(v, entData.N, entData.C)
         end
         
-        -- Notify (NO VOID/GLITCH/SHADOW)
-        if v.Name ~= "Glitch" and v.Name ~= "Void" and v.Name ~= "Shadow" then
+        -- Notify (NO SHADOW/VOID/GLITCH)
+        if v.Name ~= "Shadow" and v.Name ~= "Glitch" and v.Name ~= "Void" then
             EspEngine.Notify("⚠️ ENTITY", entData.N .. " ĐANG TỚI!")
         end
         return
@@ -294,7 +296,7 @@ local function ProcessObject(v)
         if Config.General.Guidance then EspEngine.Create(v, "💙 DẪN ĐƯỜNG", C.Quest) end
         return
     end
-    if v.Name == "CuriousGuidance" then -- Curious Light
+    if v.Name == "CuriousGuidance" then
         if Config.General.Guidance then EspEngine.Create(v, "💛 CURIOUS LIGHT", C.Loot) end
         return
     end
@@ -307,7 +309,7 @@ local function ProcessObject(v)
 
     -- D. Items / Prompts (Auto Loot + ESP)
     if v:IsA("ProximityPrompt") then
-        -- 1. Auto Loot Cache (Lưu mọi item hợp lệ vào Cache)
+        -- 1. Auto Loot Cache: LƯU TẤT CẢ VÀO CACHE NGAY LẬP TỨC
         if IsValidTarget(v) then
             if not Cache.Interactables[v] then Cache.Interactables[v] = true end
         end
@@ -315,7 +317,7 @@ local function ProcessObject(v)
         -- 2. ESP Drawing
         local tab, key, name, col = IdentifyItem(v)
         if tab and key and col and Config[tab] and Config[tab][key] then
-            if tab ~= "Auto" then -- Không vẽ Drawer
+            if tab ~= "Auto" then 
                 EspEngine.Create(v.Parent, name, col)
             end
         end
@@ -329,12 +331,14 @@ local function ProcessRoom(room)
     room.DescendantAdded:Connect(ProcessObject)
 end
 
--- // 7. LOOPS & HOOKS
--- Anti-Eyes / Lookman (Spoofing - Block Remote)
+-- // 7. LOOPS & HOOKS (CRITICAL LOGIC)
+
+-- Hook: Anti-Entity Spoofing (Block Signals)
 if getgenv and hookmetamethod then
     local old; old = hookmetamethod(game, "__namecall", function(self, ...)
         local method = getnamecallmethod()
         if method == "FireServer" then
+            -- Chặn Damage Entity
             if (self.Name == "Screech" and Config.Anti.Screech) or 
                (self.Name == "A90" and Config.Anti.A90) or 
                (self.Name == "Snare" and Config.Anti.Snare) or
@@ -342,11 +346,14 @@ if getgenv and hookmetamethod then
                 return nil 
             end
             
-            -- Chặn Damage Eyes/Lookman (MotorReplication)
+            -- Chặn Damage Eyes/Lookman (MotorReplication Spoof)
             if (Config.Anti.Eyes and workspace:FindFirstChild("Eyes")) or 
                (Config.Anti.Lookman and workspace:FindFirstChild("Lookman")) then
-               if self.Name == "MotorReplication" then return nil end
+               if self.Name == "MotorReplication" then return nil end -- Chặn cập nhật hướng nhìn lên server
             end
+            
+            -- Chặn Figure Hearing
+            if Config.Anti.Figure and self.Name == "FigureRig" then return nil end
         end
         return old(self, ...)
     end)
@@ -354,20 +361,21 @@ end
 
 -- Auto Loot Execution (Distance Check Here)
 task.spawn(function()
-    while task.wait(0.1) do
+    while task.wait(0.1) do -- Loop 0.1s
         if Client.Character and Client.Character:FindFirstChild("HumanoidRootPart") then
             local pos = Client.Character.HumanoidRootPart.Position
             for prompt, _ in pairs(Cache.Interactables) do
                 if prompt.Parent and prompt.Enabled then
                     local pPos = prompt.Parent:GetPivot().Position
-                    if (pos - pPos).Magnitude <= 12 then -- Tầm nhặt 12 studs
+                    -- CHỈ KHI Ở GẦN 12 STUDS MỚI KÍCH HOẠT
+                    if (pos - pPos).Magnitude <= 12 then
                         if IsValidTarget(prompt) then
                              if Config.Auto.Instant then prompt.HoldDuration = 0 end
-                             fireproximityprompt(prompt)
+                             fireproximityprompt(prompt) -- Dùng hàm native an toàn
                         end
                     end
                 else
-                    Cache.Interactables[prompt] = nil
+                    Cache.Interactables[prompt] = nil -- Dọn dẹp cache
                 end
             end
         end
@@ -394,14 +402,14 @@ Rooms.ChildAdded:Connect(function(r) task.wait(0.5); ProcessRoom(r) end)
 
 local function HookChar(c)
     Client.Character = c; Client.Humanoid = c:WaitForChild("Humanoid", 10); Client.RootPart = c:WaitForChild("HumanoidRootPart", 10)
-    local G = "God_v101"; pcall(function() Services.PhysicsService:CreateCollisionGroup(G); Services.PhysicsService:CollisionGroupSetCollidable(G,"Default",true); Services.PhysicsService:CollisionGroupSetCollidable(G,"Players",false) end)
+    local G = "God_v105"; pcall(function() Services.PhysicsService:CreateCollisionGroup(G); Services.PhysicsService:CollisionGroupSetCollidable(G,"Default",true); Services.PhysicsService:CollisionGroupSetCollidable(G,"Players",false) end)
     Services.RunService.Stepped:Connect(function() if Config.System.GodMode and c then for _,p in pairs(c:GetChildren()) do if p:IsA("BasePart") then p.CanTouch=false; p.CollisionGroup=G end end end end)
 end
 Client.Player.CharacterAdded:Connect(HookChar)
 if Client.Player.Character then HookChar(Client.Player.Character) end
 
 -- // 8. RAYFIELD UI (GOD TIER)
-local Window = Rayfield:CreateWindow({Name = "DOORS v101.0 FINAL GOD", ConfigurationSaving = {Enabled = false}})
+local Window = Rayfield:CreateWindow({Name = "DOORS v105.0 GOD MODE", ConfigurationSaving = {Enabled = false}})
 
 -- TAB MAIN
 local TabM = Window:CreateTab("Chính", 4483362458)
@@ -417,6 +425,7 @@ TabM:CreateToggle({Name="UI Notify", CurrentValue=true, Callback=function(v) Con
 local TabAnti = Window:CreateTab("Anti Entity", 4483362458)
 TabAnti:CreateToggle({Name="Anti Eyes (Spoof)", CurrentValue=true, Callback=function(v) Config.Anti.Eyes=v end})
 TabAnti:CreateToggle({Name="Anti Lookman", CurrentValue=true, Callback=function(v) Config.Anti.Lookman=v end})
+TabAnti:CreateToggle({Name="Anti Figure (Mute Signal)", CurrentValue=true, Callback=function(v) Config.Anti.Figure=v end})
 TabAnti:CreateToggle({Name="Anti Screech", CurrentValue=true, Callback=function(v) Config.Anti.Screech=v end})
 TabAnti:CreateToggle({Name="Anti A90", CurrentValue=true, Callback=function(v) Config.Anti.A90=v end})
 TabAnti:CreateToggle({Name="Anti Snare", CurrentValue=true, Callback=function(v) Config.Anti.Snare=v end})
@@ -448,6 +457,9 @@ TabA:CreateToggle({Name="Tablet/Gummy/Scanner", CurrentValue=true, Callback=func
 -- TAB ESP HOTEL
 local TabH = Window:CreateTab("ESP Hotel", 4483362458)
 local function Ref() EspEngine.Refresh(); local r=Services.Workspace.CurrentRooms; for _,v in pairs(r:GetChildren()) do local n=tonumber(v.Name)+1; for _,d in pairs(v:GetDescendants()) do ProcessObject(d) end end end
+TabH:CreateSection("Global")
+TabH:CreateToggle({Name="Doors", CurrentValue=true, Callback=function(v) Config.General.Doors=v; Ref() end})
+TabH:CreateToggle({Name="Guiding Light", CurrentValue=true, Callback=function(v) Config.General.Guidance=v; Ref() end})
 TabH:CreateSection("Entity")
 TabH:CreateToggle({Name="Rush/Ambush/Seek", CurrentValue=true, Callback=function(v) Config.ESP_Hotel.RushMoving=v; Config.ESP_Hotel.AmbushMoving=v; Config.ESP_Hotel.SeekMoving=v; Ref() end})
 TabH:CreateToggle({Name="Figure", CurrentValue=true, Callback=function(v) Config.ESP_Hotel.FigureRig=v; Ref() end})
@@ -465,7 +477,7 @@ TabMi:CreateSection("Entity")
 TabMi:CreateToggle({Name="Giggle", CurrentValue=true, Callback=function(v) Config.ESP_Mines.GiggleCeiling=v; Ref() end})
 TabMi:CreateToggle({Name="Gloombat", CurrentValue=true, Callback=function(v) Config.ESP_Mines.Gloombat=v; Ref() end})
 TabMi:CreateToggle({Name="Grumble", CurrentValue=true, Callback=function(v) Config.ESP_Mines.GrumbleRig=v; Ref() end})
-TabMi:CreateToggle({Name="Snare", CurrentValue=true, Callback=function(v) Config.ESP_Mines.Snare=v; Ref() end})
+TabMi:CreateToggle({Name="Lookman/Snare/Haste", CurrentValue=true, Callback=function(v) Config.ESP_Mines.Lookman=v; Config.ESP_Mines.Snare=v; Config.ESP_Mines.Haste=v; Ref() end})
 TabMi:CreateSection("Items")
 TabMi:CreateToggle({Name="Fuse/Shears", CurrentValue=true, Callback=function(v) Config.ESP_Mines.Fuse=v; Config.ESP_Mines.Shears=v; Ref() end})
 TabMi:CreateToggle({Name="Anchor/Valve/Pickaxe", CurrentValue=true, Callback=function(v) Config.ESP_Mines.Anchor=v; Config.ESP_Mines.Valve=v; Config.ESP_Mines.Pickaxe=v; Ref() end})
@@ -491,4 +503,4 @@ TabR:CreateToggle({Name="Tablet (NVCS)", CurrentValue=true, Callback=function(v)
 TabR:CreateToggle({Name="Scanner", CurrentValue=true, Callback=function(v) Config.ESP_Rooms.Scanner=v; Ref() end})
 TabR:CreateToggle({Name="Gummy Light", CurrentValue=true, Callback=function(v) Config.ESP_Rooms.Gummy=v; Ref() end})
 
-Rayfield:Notify({Title = "V101.0 FINAL GOD", Content = "Script Loaded Successfully.", Duration = 5})
+Rayfield:Notify({Title = "V105.0 FINAL GOD", Content = "Script Loaded Successfully.", Duration = 5})
