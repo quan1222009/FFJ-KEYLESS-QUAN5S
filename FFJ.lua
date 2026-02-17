@@ -101,9 +101,9 @@ local Config = {
     },
     
     Anti = {
-        Eyes=true,    -- Spoofing (Block signal)
-        Lookman=true, -- Spoofing
-        Figure=true,  -- Spoofing (Block heart/step signal)
+        Eyes=false,    -- Spoofing (Block signal)
+        Lookman=false, -- Spoofing
+        Figure=false,  -- Spoofing (Block heart/step signal)
         Screech=true,
         A90=true,
         Snare=true,
